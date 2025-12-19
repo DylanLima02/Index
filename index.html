@@ -3,8 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mágica do Anel – Física Direcional</title>
-
+<title>Mágica do Anel – Caixa Física</title>
 <style>
 html,body{
   margin:0;
@@ -14,110 +13,72 @@ html,body{
   overflow:hidden;
   touch-action:none;
 }
-
 #stage{
   width:100vw;
   height:100vh;
   position:relative;
 }
-
 #anel{
-  width:100px;
-  height:100px;
+  width:90px;
+  height:90px;
   position:absolute;
   display:none;
   background:url("ring.png") no-repeat center;
   background-size:contain;
-  filter:drop-shadow(0 0 25px gold);
+  filter:drop-shadow(0 0 20px gold);
   pointer-events:none;
 }
-
 #hint{
   position:absolute;
   bottom:20px;
   width:100%;
   text-align:center;
   color:#888;
-  font-family:Arial, sans-serif;
+  font-family:Arial;
   font-size:14px;
-}
-
-#fullscreenBtn{
-  position:fixed;
-  top:15px;
-  right:15px;
-  padding:10px 14px;
-  background:rgba(255,255,255,0.15);
-  color:white;
-  border:1px solid rgba(255,255,255,0.3);
-  border-radius:8px;
-  font-size:13px;
-  z-index:999;
 }
 </style>
 </head>
-
 <body>
 <div id="stage">
   <audio id="som" src="magica.mp3" preload="auto"></audio>
   <div id="anel"></div>
-  <div id="hint">Incline o celular • O anel cai pelo topo</div>
+  <div id="hint">Incline o celular • Anel como bolinha na caixa</div>
 </div>
-
-<button id="fullscreenBtn">Tela cheia</button>
-
 <script>
-const stage = document.getElementById("stage");
-const anel = document.getElementById("anel");
-const som = document.getElementById("som");
-const fsBtn = document.getElementById("fullscreenBtn");
+const anel = document.getElementById('anel');
+const som = document.getElementById('som');
 
 let ativo = false;
 let segurando = false;
 
-let pos = { x: window.innerWidth/2, y: window.innerHeight/2 };
-let vel = { x: 0, y: 0 };
+let pos = {x: window.innerWidth/2, y: window.innerHeight/2};
+let vel = {x:0, y:0};
+let inclinacao = {x:0, y:0};
 
-let forca = 0.8; // força da física
-let inclinacao = { x: 0, y: 0 };
+const atrito = 0.98;
+const forca = 0.6;
 
 function mostrar(x,y){
-  anel.style.display = "block";
+  anel.style.display = 'block';
   pos.x = x;
   pos.y = y;
-  vel.x = 0;
-  vel.y = 0;
+  vel.x = vel.y = 0;
   ativo = true;
 }
 
 function render(){
-  const w = anel.offsetWidth;
-  const h = anel.offsetHeight;
-  anel.style.left = (pos.x - w/2) + "px";
-  anel.style.top  = (pos.y - h/2) + "px";
+  const r = anel.offsetWidth/2;
+  anel.style.left = (pos.x - r)+'px';
+  anel.style.top = (pos.y - r)+'px';
 }
 
 function limites(){
-  const w = anel.offsetWidth / 2;
-  const h = anel.offsetHeight / 2;
-
-  // esquerda
-  if(pos.x < w){ pos.x = w; vel.x *= -0.3; }
-  // direita
-  if(pos.x > window.innerWidth - w){ pos.x = window.innerWidth - w; vel.x *= -0.3; }
-  // baixo
-  if(pos.y > window.innerHeight - h){ pos.y = window.innerHeight - h; vel.y *= -0.3; }
-}
-
-function saiuTopo(){
-  return pos.y + anel.offsetHeight < 0;
-}
-
-function desaparecer(){
-  som.currentTime = 0;
-  som.play();
-  anel.style.display = "none";
-  ativo = false;
+  const r = anel.offsetWidth/2;
+  if(pos.x < r){ pos.x = r; vel.x *= -0.4; }
+  if(pos.x > innerWidth - r){ pos.x = innerWidth - r; vel.x *= -0.4; }
+  if(pos.y < r){ pos.y = r; vel.y *= -0.4; }
+  if(pos.y > innerHeight - r){ pos.y = innerHeight - r; vel.y *= -0.4; }
 }
 
 function fisica(){
@@ -126,8 +87,8 @@ function fisica(){
   vel.x += inclinacao.x * forca;
   vel.y += inclinacao.y * forca;
 
-  vel.x *= 0.98;
-  vel.y *= 0.98;
+  vel.x *= atrito;
+  vel.y *= atrito;
 
   pos.x += vel.x;
   pos.y += vel.y;
@@ -135,68 +96,34 @@ function fisica(){
   limites();
   render();
 
-  if(saiuTopo()){
-    desaparecer();
-    return;
-  }
-
   requestAnimationFrame(fisica);
 }
 
-/* SENSOR */
-window.addEventListener("deviceorientation", e => {
-  if(e.gamma !== null && e.beta !== null){
-    inclinacao.x = e.gamma / 30;  // direita/esquerda
-    inclinacao.y = -e.beta / 30;  // frente/trás (topo)
+window.addEventListener('deviceorientation', e =>{
+  if(e.gamma!==null && e.beta!==null){
+    inclinacao.x = e.gamma/30;
+    inclinacao.y = e.beta/30;
   }
 });
 
-/* TOUCH */
-stage.addEventListener("touchstart",e=>{
-  e.preventDefault();
+/* toque inicial */
+document.addEventListener('touchstart', e=>{
   const t = e.touches[0];
   segurando = true;
-  mostrar(t.clientX,t.clientY);
-},{passive:false});
+  mostrar(t.clientX, t.clientY);
+});
 
-stage.addEventListener("touchmove",e=>{
-  e.preventDefault();
-  if(!ativo || !segurando) return;
+document.addEventListener('touchmove', e=>{
+  if(!segurando) return;
   const t = e.touches[0];
   pos.x = t.clientX;
   pos.y = t.clientY;
   render();
-},{passive:false});
+});
 
-stage.addEventListener("touchend",()=>{
+document.addEventListener('touchend', ()=>{
   segurando = false;
   requestAnimationFrame(fisica);
-});
-
-/* MOUSE */
-stage.addEventListener("mousedown",e=>{
-  segurando = true;
-  mostrar(e.clientX,e.clientY);
-});
-
-stage.addEventListener("mousemove",e=>{
-  if(!ativo || !segurando) return;
-  pos.x = e.clientX;
-  pos.y = e.clientY;
-  render();
-});
-
-document.addEventListener("mouseup",()=>{
-  segurando = false;
-  requestAnimationFrame(fisica);
-});
-
-/* FULLSCREEN */
-fsBtn.addEventListener("click",()=>{
-  const el = document.documentElement;
-  if(el.requestFullscreen) el.requestFullscreen();
-  else if(el.webkitRequestFullscreen) el.webkitRequestFullscreen();
-  fsBtn.style.display = "none";
 });
 </script>
 </body>
