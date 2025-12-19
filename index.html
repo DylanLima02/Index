@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mágica do Anel – Física</title>
+<title>Mágica do Anel – Física Direcional</title>
 
 <style>
 html,body{
@@ -61,7 +61,7 @@ html,body{
 <div id="stage">
   <audio id="som" src="magica.mp3" preload="auto"></audio>
   <div id="anel"></div>
-  <div id="hint">Incline o celular • Arraste para a direita</div>
+  <div id="hint">Incline o celular • O anel cai pelo topo</div>
 </div>
 
 <button id="fullscreenBtn">Tela cheia</button>
@@ -75,10 +75,11 @@ const fsBtn = document.getElementById("fullscreenBtn");
 let ativo = false;
 let segurando = false;
 
-let pos = { x: window.innerWidth/2, y: window.innerHeight/3 };
+let pos = { x: window.innerWidth/2, y: window.innerHeight/2 };
 let vel = { x: 0, y: 0 };
-let gravidade = 0.4;
-let inclinacaoX = 0;
+
+let forca = 0.8; // força da física
+let inclinacao = { x: 0, y: 0 };
 
 function mostrar(x,y){
   anel.style.display = "block";
@@ -96,8 +97,20 @@ function render(){
   anel.style.top  = (pos.y - h/2) + "px";
 }
 
-function saiu(){
-  return pos.x - 50 > window.innerWidth || pos.y - 50 > window.innerHeight;
+function limites(){
+  const w = anel.offsetWidth / 2;
+  const h = anel.offsetHeight / 2;
+
+  // esquerda
+  if(pos.x < w){ pos.x = w; vel.x *= -0.3; }
+  // direita
+  if(pos.x > window.innerWidth - w){ pos.x = window.innerWidth - w; vel.x *= -0.3; }
+  // baixo
+  if(pos.y > window.innerHeight - h){ pos.y = window.innerHeight - h; vel.y *= -0.3; }
+}
+
+function saiuTopo(){
+  return pos.y + anel.offsetHeight < 0;
 }
 
 function desaparecer(){
@@ -110,18 +123,19 @@ function desaparecer(){
 function fisica(){
   if(!ativo || segurando) return;
 
-  vel.y += gravidade;        // queda
-  vel.x += inclinacaoX * 0.6; // inclinação
+  vel.x += inclinacao.x * forca;
+  vel.y += inclinacao.y * forca;
 
-  vel.x *= 0.99; // atrito ar
-  vel.y *= 0.99;
+  vel.x *= 0.98;
+  vel.y *= 0.98;
 
   pos.x += vel.x;
   pos.y += vel.y;
 
+  limites();
   render();
 
-  if(saiu()){
+  if(saiuTopo()){
     desaparecer();
     return;
   }
@@ -129,10 +143,11 @@ function fisica(){
   requestAnimationFrame(fisica);
 }
 
-/* SENSOR DE INCLINAÇÃO */
+/* SENSOR */
 window.addEventListener("deviceorientation", e => {
-  if(e.gamma !== null){
-    inclinacaoX = e.gamma / 45; // -1 a 1
+  if(e.gamma !== null && e.beta !== null){
+    inclinacao.x = e.gamma / 30;  // direita/esquerda
+    inclinacao.y = -e.beta / 30;  // frente/trás (topo)
   }
 });
 
@@ -158,7 +173,7 @@ stage.addEventListener("touchend",()=>{
   requestAnimationFrame(fisica);
 });
 
-/* MOUSE (fallback) */
+/* MOUSE */
 stage.addEventListener("mousedown",e=>{
   segurando = true;
   mostrar(e.clientX,e.clientY);
@@ -176,7 +191,7 @@ document.addEventListener("mouseup",()=>{
   requestAnimationFrame(fisica);
 });
 
-/* 🔲 TELA CHEIA */
+/* FULLSCREEN */
 fsBtn.addEventListener("click",()=>{
   const el = document.documentElement;
   if(el.requestFullscreen) el.requestFullscreen();
