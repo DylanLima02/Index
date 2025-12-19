@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mágica do Anel – Caixa Física</title>
+<title>Mágica do Anel – Borda Invisível</title>
 <style>
 html,body{
   margin:0;
@@ -27,6 +27,7 @@ html,body{
   background-size:contain;
   filter:drop-shadow(0 0 20px gold);
   pointer-events:none;
+  transition: opacity 0.35s ease, transform 0.35s ease;
 }
 #hint{
   position:absolute;
@@ -43,7 +44,7 @@ html,body{
 <div id="stage">
   <audio id="som" src="magica.mp3" preload="auto"></audio>
   <div id="anel"></div>
-  <div id="hint">Incline o celular • Anel como bolinha na caixa</div>
+  <div id="hint">Arraste até a borda • Solte para desaparecer</div>
 </div>
 <script>
 const anel = document.getElementById('anel');
@@ -53,68 +54,57 @@ let ativo = false;
 let segurando = false;
 
 let pos = {x: window.innerWidth/2, y: window.innerHeight/2};
-let vel = {x:0, y:0};
-let inclinacao = {x:0, y:0};
 
-const atrito = 0.98;
-const forca = 0.6;
+// 🔮 TAMANHO DA BORDA INVISÍVEL (px)
+const BORDA = 80;
 
 function mostrar(x,y){
   anel.style.display = 'block';
+  anel.style.opacity = '1';
+  anel.style.transform = 'scale(1)';
   pos.x = x;
   pos.y = y;
-  vel.x = vel.y = 0;
   ativo = true;
+  render();
 }
 
 function render(){
   const r = anel.offsetWidth/2;
   anel.style.left = (pos.x - r)+'px';
-  anel.style.top = (pos.y - r)+'px';
+  anel.style.top  = (pos.y - r)+'px';
 }
 
-function limites(){
-  const r = anel.offsetWidth/2;
-  if(pos.x < r){ pos.x = r; vel.x *= -0.4; }
-  if(pos.x > innerWidth - r){ pos.x = innerWidth - r; vel.x *= -0.4; }
-  if(pos.y < r){ pos.y = r; vel.y *= -0.4; }
-  if(pos.y > innerHeight - r){ pos.y = innerHeight - r; vel.y *= -0.4; }
+function dentroDaBorda(){
+  return (
+    pos.x < BORDA ||
+    pos.x > innerWidth - BORDA ||
+    pos.y < BORDA ||
+    pos.y > innerHeight - BORDA
+  );
 }
 
-function fisica(){
-  if(!ativo || segurando) return;
+function desaparecerSuave(){
+  som.currentTime = 0;
+  som.play();
 
-  vel.x += inclinacao.x * forca;
-  vel.y += inclinacao.y * forca;
+  anel.style.opacity = '0';
+  anel.style.transform = 'scale(0.8)';
 
-  vel.x *= atrito;
-  vel.y *= atrito;
-
-  pos.x += vel.x;
-  pos.y += vel.y;
-
-  limites();
-  render();
-
-  requestAnimationFrame(fisica);
+  setTimeout(()=>{
+    anel.style.display = 'none';
+    ativo = false;
+  },350);
 }
 
-window.addEventListener('deviceorientation', e =>{
-  if(e.gamma!==null && e.beta!==null){
-    inclinacao.x = e.gamma/30;
-    inclinacao.y = e.beta/30;
-  }
-});
-
-/* toque inicial */
+/* TOUCH */
 document.addEventListener('touchstart', e=>{
   const t = e.touches[0];
   segurando = true;
-  mostrar(t.clientX, t.clientY);
+  if(!ativo) mostrar(t.clientX, t.clientY);
 });
 
 document.addEventListener('touchmove', e=>{
-  if(!segurando) return;
+  if(!segurando || !ativo) return;
   const t = e.touches[0];
   pos.x = t.clientX;
   pos.y = t.clientY;
@@ -123,7 +113,29 @@ document.addEventListener('touchmove', e=>{
 
 document.addEventListener('touchend', ()=>{
   segurando = false;
-  requestAnimationFrame(fisica);
+  if(ativo && dentroDaBorda()){
+    desaparecerSuave();
+  }
+});
+
+/* MOUSE (PC) */
+document.addEventListener('mousedown', e=>{
+  segurando = true;
+  if(!ativo) mostrar(e.clientX, e.clientY);
+});
+
+document.addEventListener('mousemove', e=>{
+  if(!segurando || !ativo) return;
+  pos.x = e.clientX;
+  pos.y = e.clientY;
+  render();
+});
+
+document.addEventListener('mouseup', ()=>{
+  segurando = false;
+  if(ativo && dentroDaBorda()){
+    desaparecerSuave();
+  }
 });
 </script>
 </body>
