@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mágica do Anel – Borda Invisível</title>
+<title>Mágica do Anel – Transformação</title>
 <style>
 html,body{
   margin:0;
@@ -23,7 +23,7 @@ html,body{
   height:90px;
   position:absolute;
   display:none;
-  background:url("ring.png") no-repeat center;
+  background:no-repeat center;
   background-size:contain;
   filter:drop-shadow(0 0 20px gold);
   pointer-events:none;
@@ -44,7 +44,7 @@ html,body{
 <div id="stage">
   <audio id="som" src="magica.mp3" preload="auto"></audio>
   <div id="anel"></div>
-  <div id="hint">Arraste até a borda • Solte para desaparecer</div>
+  <div id="hint">Toque para revelar o anel</div>
 </div>
 <script>
 const anel = document.getElementById('anel');
@@ -52,20 +52,35 @@ const som = document.getElementById('som');
 
 let ativo = false;
 let segurando = false;
+let transformado = false;
 
 let pos = {x: window.innerWidth/2, y: window.innerHeight/2};
 
-// 🔮 TAMANHO DA BORDA INVISÍVEL (px)
+// 🔮 TAMANHO DA BORDA INVISÍVEL
 const BORDA = 80;
 
 function mostrar(x,y){
   anel.style.display = 'block';
   anel.style.opacity = '1';
   anel.style.transform = 'scale(1)';
+  anel.style.backgroundImage = "url('ring2.png')"; // primeiro anel
+  transformado = false;
   pos.x = x;
   pos.y = y;
   ativo = true;
   render();
+
+  // ✨ transformação automática
+  setTimeout(()=>{
+    if(ativo && !transformado){
+      anel.style.opacity = '0';
+      setTimeout(()=>{
+        anel.style.backgroundImage = "url('ring.png')"; // anel final
+        anel.style.opacity = '1';
+        transformado = true;
+      },200);
+    }
+  },600);
 }
 
 function render(){
@@ -86,10 +101,8 @@ function dentroDaBorda(){
 function desaparecerSuave(){
   som.currentTime = 0;
   som.play();
-
   anel.style.opacity = '0';
   anel.style.transform = 'scale(0.8)';
-
   setTimeout(()=>{
     anel.style.display = 'none';
     ativo = false;
@@ -113,12 +126,10 @@ document.addEventListener('touchmove', e=>{
 
 document.addEventListener('touchend', ()=>{
   segurando = false;
-  if(ativo && dentroDaBorda()){
-    desaparecerSuave();
-  }
+  if(ativo && dentroDaBorda()) desaparecerSuave();
 });
 
-/* MOUSE (PC) */
+/* MOUSE */
 document.addEventListener('mousedown', e=>{
   segurando = true;
   if(!ativo) mostrar(e.clientX, e.clientY);
@@ -133,9 +144,7 @@ document.addEventListener('mousemove', e=>{
 
 document.addEventListener('mouseup', ()=>{
   segurando = false;
-  if(ativo && dentroDaBorda()){
-    desaparecerSuave();
-  }
+  if(ativo && dentroDaBorda()) desaparecerSuave();
 });
 </script>
 </body>
