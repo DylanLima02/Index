@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>Mágica do Anel – Lançamento</title>
 
 <style>
@@ -10,7 +10,7 @@ html,body{
   margin:0;
   width:100%;
   height:100%;
-  background:black; /* 🔧 COR DE FUNDO */
+  background:black;
   overflow:hidden;
   touch-action:none;
 }
@@ -21,23 +21,17 @@ html,body{
   position:relative;
 }
 
-/* ===============================
-   🔧 CONFIGURAÇÃO DO ANEL (VISUAL)
-   =============================== */
 #anel{
-  width:230px;   /* 🔧 TAMANHO DO ANEL (largura) */
-  height:250px;  /* 🔧 TAMANHO DO ANEL (altura) */
+  width:250px;   /* 🔧 TAMANHO DO ANEL */
+  height:250px;
   position:absolute;
   display:none;
   background:no-repeat center;
   background-size:contain;
-  filter:drop-shadow(0 0 20px gold); /* 🔧 SOMBRA / BRILHO */
+  filter:drop-shadow(0 0 20px gold);
   pointer-events:none;
 }
 
-/* ===============================
-   🔧 BOTÃO DE TELA CHEIA
-   =============================== */
 #fullscreenBtn{
   position:fixed;
   top:15px;
@@ -55,10 +49,7 @@ html,body{
 <body>
 
 <div id="stage">
-  <!-- 🔧 SOM DE MÁGICA -->
-  <!-- Troque o nome do arquivo se quiser -->
   <audio id="som" src="magica.mp3" preload="auto"></audio>
-
   <div id="anel"></div>
 </div>
 
@@ -66,39 +57,35 @@ html,body{
 
 <script>
 /* ===============================
-   🔧 CONFIGURAÇÕES PRINCIPAIS
+   CONFIGURAÇÕES
    =============================== */
-
-const ARQUIVO_RING_INICIAL = 'ring2.png'; // 🔧 anel que aparece primeiro
-const ARQUIVO_RING_FINAL   = 'ring.png';  // 🔧 anel após transformação
-
-const ATRITO = 0.98;   // 🔧 VELOCIDADE DO DESLIZE (quanto maior, mais escorrega)
-                       // 0.99 = muito gelo | 0.95 = menos gelo
-
-const TEMPO_TRANSFORMACAO = 2000; // 🔧 tempo (ms) para transformar ring2 → ring
+const IMG_INICIAL = 'ring2.png';
+const IMG_FINAL   = 'ring.png';
+const TEMPO_TRANSFORMACAO = 2000;
+const ATRITO = 0.98;
 
 /* =============================== */
-
 const anel = document.getElementById('anel');
 const som = document.getElementById('som');
 const fsBtn = document.getElementById('fullscreenBtn');
 
 let estado = 0; // 0=oculto | 1=ring2 | 2=ring final
 let segurando = false;
+let bloquearToque = true; // evita toque do botão fullscreen
 
-let pos = {x: innerWidth/2, y: innerHeight/2};
-let vel = {x:0, y:0};
-let ultimo = {x:0, y:0};
+let pos = {x:0,y:0};
+let vel = {x:0,y:0};
+let ultimo = {x:0,y:0};
 
 function render(){
   const r = anel.offsetWidth/2;
-  anel.style.left = (pos.x - r)+'px';
-  anel.style.top  = (pos.y - r)+'px';
+  anel.style.left = (pos.x - r) + 'px';
+  anel.style.top  = (pos.y - r) + 'px';
 }
 
-function mostrarRing2(x,y){
+function mostrarInicial(x,y){
   anel.style.display='block';
-  anel.style.backgroundImage = `url('${ARQUIVO_RING_INICIAL}')`; // 🔧 arquivo inicial
+  anel.style.backgroundImage = `url('${IMG_INICIAL}')`;
   pos.x=x; pos.y=y;
   render();
   estado=1;
@@ -107,9 +94,8 @@ function mostrarRing2(x,y){
 function transformar(){
   anel.style.transition='opacity 0.4s ease';
   anel.style.opacity='0';
-
   setTimeout(()=>{
-    anel.style.backgroundImage = `url('${ARQUIVO_RING_FINAL}')`; // 🔧 arquivo final
+    anel.style.backgroundImage = `url('${IMG_FINAL}')`;
     anel.style.opacity='1';
     anel.style.transition='none';
     estado=2;
@@ -118,118 +104,63 @@ function transformar(){
 
 function fisica(){
   if(segurando || estado!==2) return;
-
-  pos.x += vel.x;
-  pos.y += vel.y;
-
-  vel.x *= ATRITO; // 🔧 controle do deslize
-  vel.y *= ATRITO;
-
+  pos.x+=vel.x;
+  pos.y+=vel.y;
+  vel.x*=ATRITO;
+  vel.y*=ATRITO;
   render();
-
-  // 🔧 quando o anel sai totalmente da tela
-  if(
-    pos.x < -100 ||
-    pos.x > innerWidth + 100 ||
-    pos.y < -100 ||
-    pos.y > innerHeight + 100
-  ){
-    som.currentTime = 0;
+  if(pos.x<-150||pos.x>innerWidth+150||pos.y<-150||pos.y>innerHeight+150){
+    som.currentTime=0;
     som.play();
     anel.style.display='none';
     estado=0;
     return;
   }
-
   requestAnimationFrame(fisica);
 }
 
 /* ===============================
-   CONTROLES DE TOQUE
+   TOQUE
    =============================== */
-
 document.addEventListener('touchstart',e=>{
-  const t = e.touches[0];
-
-  /* ===============================
-     🔧 ÁREA DO BOTÃO (NÃO ATIVA O ANEL)
-     =============================== */
-  const botaoArea = 250; // 🔧 tamanho da área protegida (px)
-  if(t.clientX > innerWidth - botaoArea && t.clientY < botaoArea){
-    return; // toque ignorado (região do botão)
-  }
-
+  if(bloquearToque) return;
+  const t=e.touches[0];
   if(estado===0){
-    mostrarRing2(t.clientX, t.clientY);
-
+    mostrarInicial(t.clientX,t.clientY);
   }else if(estado===1){
-    // 🔧 segundo toque inicia transformação
-    setTimeout(transformar, TEMPO_TRANSFORMACAO);
+    setTimeout(transformar,TEMPO_TRANSFORMACAO);
   }
-
-  segurando = true;
-  ultimo.x = t.clientX;
-  ultimo.y = t.clientY;
-});
-
-  }else if(estado===1){
-    // 🔧 segundo toque inicia transformação
-    setTimeout(transformar, TEMPO_TRANSFORMACAO);
-  }
-
-  segurando = true;
-  ultimo.x = t.clientX;
-  ultimo.y = t.clientY;
+  segurando=true;
+  ultimo.x=t.clientX;
+  ultimo.y=t.clientY;
 });
 
 document.addEventListener('touchmove',e=>{
-  if(!segurando || estado!==2) return;
-
-  const t = e.touches[0];
-
-  // 🔧 velocidade do lançamento vem do movimento do dedo
-  vel.x = t.clientX - ultimo.x;
-  vel.y = t.clientY - ultimo.y;
-
-  pos.x = t.clientX;
-  pos.y = t.clientY;
-
-  ultimo.x = t.clientX;
-  ultimo.y = t.clientY;
-
+  if(!segurando||estado!==2) return;
+  const t=e.touches[0];
+  vel.x=t.clientX-ultimo.x;
+  vel.y=t.clientY-ultimo.y;
+  pos.x=t.clientX;
+  pos.y=t.clientY;
+  ultimo.x=t.clientX;
+  ultimo.y=t.clientY;
   render();
 });
 
 document.addEventListener('touchend',()=>{
-  segurando = false;
+  segurando=false;
   if(estado===2) requestAnimationFrame(fisica);
 });
 
 /* ===============================
-   BOTÃO DE TELA CHEIA
+   FULLSCREEN (CORRETO)
    =============================== */
-
-/* ===============================
-   TELA CHEIA (CORRETA – COM INTERAÇÃO)
-   =============================== */
-
-// ⚠️ Fullscreen SÓ funciona após interação do usuário (regra do navegador)
-// Solução profissional: entrar em tela cheia NO PRIMEIRO TOQUE
-
-let fullscreenAtivo = false;
-
-function ativarTelaCheia(){
-  if(fullscreenAtivo) return;
-
-  const el = document.documentElement;
+fsBtn.addEventListener('click',()=>{
+  const el=document.documentElement;
   if(el.requestFullscreen) el.requestFullscreen();
   else if(el.webkitRequestFullscreen) el.webkitRequestFullscreen();
-
-  fullscreenAtivo = true;
-  fsBtn.style.display = 'none';
-}
-  else if(el.webkitRequestFullscreen) el.webkitRequestFullscreen();
   fsBtn.style.display='none';
+  setTimeout(()=>{bloquearToque=false;},500);
 });
 </script>
 </body>
