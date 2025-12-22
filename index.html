@@ -209,12 +209,26 @@ document.addEventListener('touchend',()=>{
    BOTÃO DE TELA CHEIA
    =============================== */
 
-fsBtn.addEventListener('click',()=>{
+/* ===============================
+   TELA CHEIA AUTOMÁTICA
+   =============================== */
+
+// 🔧 tempo (ms) para entrar em tela cheia automaticamente
+const TEMPO_TELA_CHEIA = 1500;
+
+setTimeout(()=>{
   const el = document.documentElement;
-  if(el.requestFullscreen) el.requestFullscreen();
+  if(!document.fullscreenElement){
+    if(el.requestFullscreen) el.requestFullscreen();
+    else if(el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+  }
+  fsBtn.style.display='none'; // botão não é mais necessário
+}, TEMPO_TELA_CHEIA);
   else if(el.webkitRequestFullscreen) el.webkitRequestFullscreen();
   fsBtn.style.display='none';
 });
 </script>
 </body>
 </html>
+
+
