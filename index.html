@@ -25,8 +25,8 @@ html,body{
    🔧 CONFIGURAÇÃO DO ANEL (VISUAL)
    =============================== */
 #anel{
-  width:90px;   /* 🔧 TAMANHO DO ANEL (largura) */
-  height:90px;  /* 🔧 TAMANHO DO ANEL (altura) */
+  width:250px;   /* 🔧 TAMANHO DO ANEL (largura) */
+  height:250px;  /* 🔧 TAMANHO DO ANEL (altura) */
   position:absolute;
   display:none;
   background:no-repeat center;
@@ -151,8 +151,26 @@ function fisica(){
 document.addEventListener('touchstart',e=>{
   const t = e.touches[0];
 
+  /* ===============================
+     🔧 ÁREA DO BOTÃO (NÃO ATIVA O ANEL)
+     =============================== */
+  const botaoArea = 250; // 🔧 tamanho da área protegida (px)
+  if(t.clientX > innerWidth - botaoArea && t.clientY < botaoArea){
+    return; // toque ignorado (região do botão)
+  }
+
   if(estado===0){
     mostrarRing2(t.clientX, t.clientY);
+
+  }else if(estado===1){
+    // 🔧 segundo toque inicia transformação
+    setTimeout(transformar, TEMPO_TRANSFORMACAO);
+  }
+
+  segurando = true;
+  ultimo.x = t.clientX;
+  ultimo.y = t.clientY;
+});
 
   }else if(estado===1){
     // 🔧 segundo toque inicia transformação
